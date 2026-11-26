@@ -191,7 +191,11 @@ export function PerformanceDashboard({
                   }}
                   aria-hidden="true"
                 />
-                {data.source === "live" ? "Live EXPA API" : "UNS Baseline Fallback"}
+                {data.source === "live"
+                  ? "Live EXPA API"
+                  : data.office.id === 1539
+                    ? "IDN Fallback"
+                    : "UNS Fallback"}
               </span>
             )}
 
@@ -245,7 +249,7 @@ export function PerformanceDashboard({
       <main aria-busy={loading} className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         <section className="dashboard-hero" aria-label="Performance overview">
           <div>
-            <h2>Your progress.<br /><em>A clearer perspective.</em></h2>
+            <h2><em>Indonesia is a Home.</em></h2>
             <p>Explore exchange performance, compare products, and take the next step with your team.</p>
           </div>
           <div className="period-label" role="status" aria-live="polite">
@@ -451,12 +455,10 @@ export function PerformanceDashboard({
           >
             <Info size={18} weight="regular" className="mt-0.5 shrink-0" aria-hidden="true" />
             <div>
-              <span className="font-semibold">UNS Baseline Fallback Active:</span>{" "}
-              {data.fallbackReason} Showing baseline figures for{" "}
-              <span className="font-semibold">{data.office.name} (#{data.office.id})</span>.
-              Set a valid server-side{" "}
-              <code className="font-mono-num font-semibold">EXPA_ACCESS_TOKEN</code> to pull
-              live EXPA performance data.
+              <span className="font-semibold">
+                {data.office.id === 1539 ? "AIESEC in Indonesia Fallback:" : "UNS Fallback:"}
+              </span>{" "}
+              {data.fallbackReason}
             </div>
           </div>
         )}

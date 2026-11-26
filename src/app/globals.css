@@ -140,8 +140,8 @@ button { touch-action: manipulation; }
 .dashboard-header { border-top: 4px solid #bf0820; }
 .brand-label { color: var(--color-primary); font-weight: 700; letter-spacing: .08em; font-size: 12px; }
 .dashboard-hero { padding: 8px 0 0; display: flex; justify-content: space-between; gap: 24px; align-items: end; }
-.dashboard-hero h2 { font-size: clamp(28px, 4vw, 36px); font-weight: 700; line-height: 1.15; letter-spacing: -.025em; }
-.dashboard-hero h2 em { color: var(--color-primary); }
+.dashboard-hero h2 { font-size: clamp(36px, 4.5vw, 52px); font-weight: 700; line-height: 1.08; letter-spacing: -.03em; text-wrap: balance; }
+.dashboard-hero h2 em { color: var(--color-primary); font-style: normal; }
 .dashboard-hero p { color: var(--text-secondary); margin-top: 10px; max-width: 55ch; line-height: 1.55; }
 .period-label { flex-shrink: 0; font-size: 13px; color: var(--text-secondary); text-align: right; }
 .period-label strong { display: block; color: var(--text-primary); margin-top: 6px; font-variant-numeric: tabular-nums; }

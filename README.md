@@ -18,7 +18,7 @@ A one-page oGX & iCX performance analytics dashboard prototype built with **Next
   1. **Executive PDF / Print Report** (browser print-to-PDF layout with print-safe motion teardown)
   2. **CSV Export** (UTF-8 BOM, Excel & Google Sheets ready, with explicit source & scope headers)
   3. **Copy Summary** (plain-text LC summary ready for WhatsApp/LINE groups)
-- **Transparent Fallback Mode:** When `EXPA_ACCESS_TOKEN` is missing or expired (~2 hours), the server transparently serves the UNS (`#6`) MC26 baseline fallback (never relabelling it as another office) and displays a clear notice banner.
+- **Transparent Fallback Mode:** When `EXPA_ACCESS_TOKEN` is missing or expired (~2 hours), the server serves baseline fallback data for **AIESEC in UNS (`#6`)** and **AIESEC in Indonesia (`#1539`)** with a concise fallback notice banner.
 
 ---
 

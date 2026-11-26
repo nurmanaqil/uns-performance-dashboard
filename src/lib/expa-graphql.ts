@@ -39,8 +39,8 @@ export class ExpaApiError extends Error {
   }
 }
 
-// 60s server cache + in-flight deduplication (prevents React StrictMode double-fetch)
 const CACHE_TTL_MS = 60_000;
+const MAX_CACHE_ENTRIES = 100;
 const responseCache = new Map<string, { expiresAt: number; payload: PerformancePayload }>();
 const inflightRequests = new Map<string, Promise<PerformancePayload>>();
 
@@ -241,6 +241,13 @@ export async function fetchExpaPerformance(
 
   const promise = fetchExpaPerformanceUncached(officeId, start, end)
     .then((payload) => {
+      if (responseCache.size >= MAX_CACHE_ENTRIES) {
+        const now = Date.now();
+        for (const [k, v] of responseCache) {
+          if (v.expiresAt <= now) responseCache.delete(k);
+        }
+        if (responseCache.size >= MAX_CACHE_ENTRIES) responseCache.clear();
+      }
       responseCache.set(cacheKey, {
         expiresAt: Date.now() + CACHE_TTL_MS,
         payload,

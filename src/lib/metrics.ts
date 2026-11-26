@@ -5,7 +5,7 @@ import {
   type StageCounts,
   type StageKey,
   type StepConversion,
-} from "./types";
+} from "./types.ts";
 
 export function emptyStageCounts(): StageCounts {
   return { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 };
@@ -168,5 +168,5 @@ export function getPresetDateRange(
 export function isValidIsoDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = Date.parse(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsed);
+  return !Number.isNaN(parsed) && new Date(parsed).toISOString().slice(0, 10) === value;
 }

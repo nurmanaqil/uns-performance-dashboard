@@ -18,7 +18,7 @@ A one-page oGX & iCX performance analytics dashboard prototype built with **Next
   1. **Executive PDF / Print Report** (browser print-to-PDF layout with print-safe motion teardown)
   2. **CSV Export** (UTF-8 BOM, Excel & Google Sheets ready, with explicit source & scope headers)
   3. **Copy Summary** (plain-text LC summary ready for WhatsApp/LINE groups)
-- **Transparent Fallback Mode:** When `EXPA_ACCESS_TOKEN` is missing or expired (~2 hours), the server serves baseline fallback data for **AIESEC in UNS (`#6`)** and **AIESEC in Indonesia (`#1539`)** with a concise fallback notice banner.
+- **Transparent Fallback Mode:** When `EXPA_ACCESS_TOKEN` is missing or expired (~2 hours), the server serves elapsed-day scaled baseline fallback data for **AIESEC in UNS (`#6`)** and **AIESEC in Indonesia (`#1539`)** (so `MC Term`, `LC Term`, and custom ranges reflect distinct elapsed durations) with a concise fallback notice banner.
 
 ---
 
@@ -77,7 +77,6 @@ Open `.env.local` and set your EXPA access token:
 EXPA_ACCESS_TOKEN=your_expa_token_here
 EXPA_GRAPHQL_URL=https://gis-api.aiesec.org/graphql
 DEFAULT_OFFICE_ID=6
-DEFAULT_OFFICE_NAME=AIESEC in UNS
 ```
 
 ```bash

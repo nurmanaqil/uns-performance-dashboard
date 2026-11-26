@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowsClockwise,
   Check,
@@ -64,6 +64,7 @@ export function PerformanceDashboard({
   const [copied, setCopied] = useState<boolean>(false);
 
   const motionRoot = useDashboardMotion(Boolean(data) && !isEmptyPayload(data));
+  const abortRef = useRef<AbortController | null>(null);
 
   const fetchPerformance = useCallback(
     async (start: string, end: string, targetOfficeId: number) => {
@@ -72,6 +73,9 @@ export function PerformanceDashboard({
         return;
       }
       setDateError(null);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       setLoading(true);
       setErrorMsg(null);
 
@@ -83,18 +87,26 @@ export function PerformanceDashboard({
         });
         const res = await fetch(`/api/performance?${params.toString()}`, {
           cache: "no-store",
+          signal: controller.signal,
         });
         const json = await res.json();
         if (!res.ok) {
           throw new Error(json.error || `Request failed (${res.status})`);
         }
-        setData(json as PerformancePayload);
+        if (abortRef.current === controller) {
+          setData(json as PerformancePayload);
+        }
       } catch (err) {
-        setErrorMsg(
-          err instanceof Error ? err.message : "Failed to load performance data."
-        );
+        if (err instanceof Error && err.name === "AbortError") return;
+        if (abortRef.current === controller) {
+          setErrorMsg(
+            err instanceof Error ? err.message : "Failed to load performance data."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (abortRef.current === controller) {
+          setLoading(false);
+        }
       }
     },
     []
@@ -102,6 +114,7 @@ export function PerformanceDashboard({
 
   useEffect(() => {
     fetchPerformance(initialRange.start, initialRange.end, defaultOfficeId);
+    return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

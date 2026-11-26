@@ -1,4 +1,4 @@
-import type { EntityOption } from "./types";
+import type { EntityOption } from "./types.ts";
 
 // Verified against AIESEC Dev Guide "List of Office IDs"
 export const INDONESIA_ENTITIES: EntityOption[] = [

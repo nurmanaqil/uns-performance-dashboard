@@ -1,12 +1,12 @@
-import { resolveEntity } from "@/lib/entities";
-import { aggregateProducts, buildStepConversions } from "@/lib/metrics";
+import { resolveEntity } from "../lib/entities.ts";
+import { aggregateProducts, buildStepConversions } from "../lib/metrics.ts";
 import {
   PRODUCT_META,
   type PerformancePayload,
   type ProductCode,
   type ProductMetrics,
   type StageCounts,
-} from "@/lib/types";
+} from "../lib/types.ts";
 
 const BASELINES: Record<number, Record<ProductCode, StageCounts>> = {
   6: {
@@ -27,21 +27,23 @@ const BASELINES: Record<number, Record<ProductCode, StageCounts>> = {
   },
 };
 
-function computeWindowRatio(start: string, end: string): number {
-  const s = Date.parse(`${start}T00:00:00Z`);
-  const e = Date.parse(`${end}T00:00:00Z`);
-  const days = Math.max(1, Math.round((e - s) / 86_400_000) + 1);
-  if (days >= 115) return 1;
-  return Math.max(0.08, Math.min(1, days / 118));
+function computeWindowRatio(start: string, end: string, nowMs: number = Date.now()): number {
+  const startMs = Date.parse(`${start}T00:00:00Z`);
+  const endMs = Date.parse(`${end}T23:59:59Z`);
+  if (startMs > nowMs) return 0;
+  const effectiveEnd = Math.min(endMs, nowMs);
+  const elapsedDays = Math.max(1, Math.round((effectiveEnd - startMs) / 86_400_000) + 1);
+  return Math.max(0.08, Math.min(2.2, elapsedDays / 118));
 }
 
 export function getSnapshotPerformance(
   officeId: number,
   start: string,
   end: string,
-  _fallbackReason: string
+  _fallbackReason: string,
+  nowMs: number = Date.now()
 ): PerformancePayload {
-  const ratio = computeWindowRatio(start, end);
+  const ratio = computeWindowRatio(start, end, nowMs);
   const resolvedId = officeId in BASELINES ? officeId : 6;
   const entity = resolveEntity(resolvedId);
   const baseline = BASELINES[resolvedId];
@@ -79,7 +81,7 @@ export function getSnapshotPerformance(
     period: { start, end },
     source: "snapshot",
     fallbackReason: `EXPA token expired — displaying ${label} Fallback data.`,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: new Date(nowMs).toISOString(),
     totals,
     products,
     stepConversions,

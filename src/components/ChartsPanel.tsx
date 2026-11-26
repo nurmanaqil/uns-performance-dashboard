@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   Bar,
   BarChart,
@@ -22,6 +22,7 @@ import {
 interface ChartsPanelProps {
   data: PerformancePayload;
   stream: StreamFilter;
+  loading: boolean;
   selectedProduct: ProductCode | null;
   onSelectProduct: (code: ProductCode | null) => void;
 }
@@ -29,10 +30,20 @@ interface ChartsPanelProps {
 export function ChartsPanel({
   data,
   stream,
+  loading,
   selectedProduct,
   onSelectProduct,
 }: ChartsPanelProps) {
   const [chartMode, setChartMode] = useState<"funnel" | "product">("funnel");
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const activeProduct = selectedProduct
     ? data.products.find((p) => p.code === selectedProduct) ?? null
@@ -64,10 +75,26 @@ export function ChartsPanel({
     Completions: p.counts.CO,
   }));
 
+  const chartKey = `${chartMode}-${stream}-${selectedProduct ?? "all"}-${data.office.id}-${data.period.start}-${data.period.end}`;
+  const animateBars = !reducedMotion;
+
   return (
     <section data-reveal className="grid grid-cols-1 gap-6 lg:grid-cols-12 print-break-avoid">
-      {/* Left 7 columns: Question-driven interactive chart */}
-      <div className="analytics-panel rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5 lg:col-span-7">
+      <div
+        data-card-loading={loading}
+        className="analytics-panel card-loading-surface rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5 lg:col-span-7"
+      >
+        {loading && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="no-print pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+          >
+            <span className="rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] shadow-sm">
+              Updating performance data…
+            </span>
+          </div>
+        )}
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-[15px] font-semibold leading-snug text-[var(--text-primary)]">
@@ -121,7 +148,7 @@ export function ChartsPanel({
         <div className="h-[290px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             {chartMode === "funnel" ? (
-              <BarChart data={funnelChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <BarChart key={chartKey} data={funnelChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
                 <XAxis
                   dataKey="stage"
@@ -145,12 +172,42 @@ export function ChartsPanel({
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
-                {activeProduct && <Bar isAnimationActive={false} dataKey={activeProduct.code} fill={activeProduct.color} radius={[4,4,0,0]} maxBarSize={42} />}
-                {!activeProduct && (stream === "all" || stream === "ogx") && <Bar isAnimationActive={false} dataKey="oGX" fill="#bf0820" radius={[4,4,0,0]} maxBarSize={28} />}
-                {!activeProduct && (stream === "all" || stream === "icx") && <Bar isAnimationActive={false} dataKey="iCX" fill="#0cb9c1" radius={[4,4,0,0]} maxBarSize={28} />}
+                {activeProduct && (
+                  <Bar
+                    isAnimationActive={animateBars}
+                    animationDuration={380}
+                    animationEasing="ease-out"
+                    dataKey={activeProduct.code}
+                    fill={activeProduct.color}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={42}
+                  />
+                )}
+                {!activeProduct && (stream === "all" || stream === "ogx") && (
+                  <Bar
+                    isAnimationActive={animateBars}
+                    animationDuration={380}
+                    animationEasing="ease-out"
+                    dataKey="oGX"
+                    fill="#bf0820"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  />
+                )}
+                {!activeProduct && (stream === "all" || stream === "icx") && (
+                  <Bar
+                    isAnimationActive={animateBars}
+                    animationDuration={380}
+                    animationEasing="ease-out"
+                    dataKey="iCX"
+                    fill="#0cb9c1"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  />
+                )}
               </BarChart>
             ) : (
-              <BarChart data={productChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <BarChart key={chartKey} data={productChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
                 <XAxis
                   dataKey="product"
@@ -174,16 +231,39 @@ export function ChartsPanel({
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
-                <Bar isAnimationActive={false} dataKey="Approvals" fill="#bf0820" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                <Bar isAnimationActive={false} dataKey="Realizations" fill="#f48924" radius={[4, 4, 0, 0]} maxBarSize={22} />
-                <Bar isAnimationActive={false} dataKey="Completions" fill="#216b55" radius={[4, 4, 0, 0]} maxBarSize={22} />
+                <Bar
+                  isAnimationActive={animateBars}
+                  animationDuration={380}
+                  animationEasing="ease-out"
+                  dataKey="Approvals"
+                  fill="#bf0820"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={22}
+                />
+                <Bar
+                  isAnimationActive={animateBars}
+                  animationDuration={380}
+                  animationEasing="ease-out"
+                  dataKey="Realizations"
+                  fill="#f48924"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={22}
+                />
+                <Bar
+                  isAnimationActive={animateBars}
+                  animationDuration={380}
+                  animationEasing="ease-out"
+                  dataKey="Completions"
+                  fill="#216b55"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={22}
+                />
               </BarChart>
             )}
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Right 5 columns: 6-Product Nusantara Scorecard (adapted from CORE MC Analytics tiles) */}
       <div className="analytics-panel rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4 sm:p-5 lg:col-span-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>

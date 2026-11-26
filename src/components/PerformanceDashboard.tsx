@@ -59,24 +59,47 @@ export function PerformanceDashboard({
 
   const [data, setData] = useState<PerformancePayload | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingTrigger, setLoadingTrigger] = useState<"init" | "preset" | "apply" | null>("init");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
   const motionRoot = useDashboardMotion(Boolean(data) && !isEmptyPayload(data));
   const abortRef = useRef<AbortController | null>(null);
+  const loadedQueryRef = useRef<{ start: string; end: string; officeId: number } | null>(null);
 
   const fetchPerformance = useCallback(
-    async (start: string, end: string, targetOfficeId: number) => {
+    async (
+      start: string,
+      end: string,
+      targetOfficeId: number,
+      trigger: "init" | "preset" | "apply"
+    ) => {
       if (start > end) {
         setDateError("Start date must be earlier than or equal to end date.");
         return;
       }
       setDateError(null);
+
+      const loaded = loadedQueryRef.current;
+      if (
+        loaded &&
+        loaded.start === start &&
+        loaded.end === end &&
+        loaded.officeId === targetOfficeId
+      ) {
+        abortRef.current?.abort();
+        abortRef.current = null;
+        setLoading(false);
+        setLoadingTrigger(null);
+        return;
+      }
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       setLoading(true);
+      setLoadingTrigger(trigger);
       setErrorMsg(null);
 
       try {
@@ -94,7 +117,9 @@ export function PerformanceDashboard({
           throw new Error(json.error || `Request failed (${res.status})`);
         }
         if (abortRef.current === controller) {
-          setData(json as PerformancePayload);
+          const payload = json as PerformancePayload;
+          loadedQueryRef.current = { start, end, officeId: targetOfficeId };
+          setData(payload);
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
@@ -106,6 +131,7 @@ export function PerformanceDashboard({
       } finally {
         if (abortRef.current === controller) {
           setLoading(false);
+          setLoadingTrigger(null);
         }
       }
     },
@@ -113,35 +139,49 @@ export function PerformanceDashboard({
   );
 
   useEffect(() => {
-    fetchPerformance(initialRange.start, initialRange.end, defaultOfficeId);
+    fetchPerformance(initialRange.start, initialRange.end, defaultOfficeId, "init");
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const parsedCustomOffice = customOfficeInput.trim()
+    ? Number(customOfficeInput.trim())
+    : null;
+  const effectiveOfficeId =
+    parsedCustomOffice !== null &&
+    Number.isInteger(parsedCustomOffice) &&
+    parsedCustomOffice > 0
+      ? parsedCustomOffice
+      : officeId;
+
+  const loadedQuery = loadedQueryRef.current;
+  const hasPendingInputChanges =
+    Boolean(loadedQuery) &&
+    (startDate !== loadedQuery!.start ||
+      endDate !== loadedQuery!.end ||
+      effectiveOfficeId !== loadedQuery!.officeId);
 
   function handlePresetClick(preset: Exclude<DatePresetKey, "custom">) {
     const range = getPresetDateRange(preset);
     setActivePreset(preset);
     setStartDate(range.start);
     setEndDate(range.end);
-    fetchPerformance(range.start, range.end, officeId);
+    const activeOffice = loadedQueryRef.current?.officeId ?? officeId;
+    setOfficeId(activeOffice);
+    setCustomOfficeInput("");
+    fetchPerformance(range.start, range.end, activeOffice, "preset");
   }
 
   function handleApplyCustom(e: React.FormEvent) {
     e.preventDefault();
-    setActivePreset("custom");
-    const parsedCustom = customOfficeInput.trim()
-      ? Number(customOfficeInput.trim())
-      : officeId;
-    const targetId =
-      Number.isInteger(parsedCustom) && parsedCustom > 0 ? parsedCustom : officeId;
-    setOfficeId(targetId);
-    fetchPerformance(startDate, endDate, targetId);
+    if (!hasPendingInputChanges) return;
+    setOfficeId(effectiveOfficeId);
+    fetchPerformance(startDate, endDate, effectiveOfficeId, "apply");
   }
 
   function handleEntitySelect(nextId: number) {
     setOfficeId(nextId);
     setCustomOfficeInput("");
-    fetchPerformance(startDate, endDate, nextId);
   }
 
   async function handleCopySummary() {
@@ -440,13 +480,13 @@ export function PerformanceDashboard({
 
             <button
               type="submit"
-              disabled={loading}
-              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md bg-[var(--color-primary)] px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
+              disabled={!hasPendingInputChanges || loadingTrigger === "apply"}
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md bg-[var(--color-primary)] px-4 text-xs font-semibold text-white transition-colors duration-150 hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <ArrowsClockwise
                 size={15}
                 weight="bold"
-                className={loading ? "animate-spin" : ""}
+                className={loadingTrigger === "apply" ? "animate-spin" : ""}
                 aria-hidden="true"
               />
               <span>Apply</span>
@@ -488,7 +528,7 @@ export function PerformanceDashboard({
             </span>
             <button
               type="button"
-              onClick={() => fetchPerformance(startDate, endDate, officeId)}
+              onClick={() => fetchPerformance(startDate, endDate, effectiveOfficeId, "apply")}
               className="cursor-pointer rounded-md border border-[var(--color-primary)] px-2.5 py-1 font-semibold hover:bg-[var(--color-primary)] hover:text-white"
             >
               Retry
@@ -534,7 +574,6 @@ export function PerformanceDashboard({
           </div>
         )}
 
-        {/* Zone 2: 7-Stage Horizontal Funnel KPI Strip (SU -> CO) */}
         {data && activeTotals && !isAllZero && (
           <>
             <section aria-label="7-stage funnel summary" className="print-break-avoid">
@@ -554,7 +593,9 @@ export function PerformanceDashboard({
                   return (
                     <div
                       key={stage.key}
-                      data-kpi data-outcome={isOutcomeAnchor} className={`kpi-card flex flex-col justify-between rounded-[10px] border p-3.5 ${
+                      data-kpi
+                      data-outcome={isOutcomeAnchor}
+                      className={`kpi-card flex flex-col justify-between rounded-[10px] border p-3.5 ${
                         isOutcomeAnchor
                           ? "border-[var(--border-strong)] bg-[var(--bg-surface)]"
                           : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
@@ -601,15 +642,14 @@ export function PerformanceDashboard({
               </div>
             </section>
 
-            {/* Zone 3: Asymmetric 7:5 Chart & 6-Product Nusantara Scorecard */}
             <ChartsPanel
               data={data}
               stream={stream}
+              loading={loading}
               selectedProduct={selectedProduct}
               onSelectProduct={setSelectedProduct}
             />
 
-            {/* Zone 4: CORE-Style Tabbed Conversion Rates Matrix */}
             <ConversionMatrix data={data} stream={stream} />
           </>
         )}

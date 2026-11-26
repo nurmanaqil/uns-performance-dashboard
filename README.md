@@ -11,7 +11,8 @@ A one-page oGX & iCX performance analytics dashboard prototype built with **Next
 ## Key Features
 - **oGX & iCX Funnel (SU – CO):** Displays Sign-Ups (`oGX` only, following AIESEC/CORE convention), Applicants (`applicants.value`), Accepted, Approved, Realized, Finished, and Completed (`doc_count`) with step-by-step conversion ratios.
 - **6-Product Scorecard:** Interactive breakdown for `oGV`, `oGTa`, `oGTe`, `iGV`, `iGTa`, and `iGTe` with click-to-isolate chart filtering.
-- **AIESEC-Native Time Period Filters:** Quick presets (`MC Term`, `LC Term`, `This Quarter`, `This Month`, `Prev Month`) plus custom `Start Date` – `End Date` range.
+- **AIESEC-Native Time Period Filters & Smart Apply:** Quick presets (`MC Term`, `LC Term`, `This Quarter`, `This Month`, `Prev Month`) load immediately without activating the `Apply` button and cancel mid-flight if the user returns to the already-loaded period. Changes to `Start Date`, `End Date`, `Entity / LC Scope`, or `Custom Office ID` enable the `Apply` button (disabled when unchanged).
+- **Interactive Motion & Loading Feedback:** Bottom-up Recharts bar-fill animation when switching products/filters (respects `prefers-reduced-motion`) and a blur-only loading overlay (`Updating performance data…`) on the chart container during API refreshes.
 - **Flexible Entity / Token Support:** Defaults to **AIESEC in UNS (`#6`)** and supports switching to MC Indonesia (`#1539`) or any custom Office ID when backed by a token with appropriate EXPA permissions.
 - **Tabbed Conversion Rates Matrix:** Select any base stage (`SU`–`FI`) to inspect downstream conversion percentages across `Total`, `oGX`, `iCX`, and all 6 products (`SU` base keeps `Total` scoped to `oGX` for consistency with KPI step ratios).
 - **3-Way Report Export (Full Payload Scope):**

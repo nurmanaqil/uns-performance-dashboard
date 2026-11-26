@@ -181,6 +181,27 @@ button { touch-action: manipulation; }
 .dashboard-shell main { padding-block: 20px; }
 .dashboard-shell main > :not(:last-child) { margin-block-end: 20px; }
 .dashboard-shell .dashboard-hero p { margin-top: 8px; }
+.card-loading-surface { position: relative; overflow: hidden; }
+.card-loading-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: transparent;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 180ms ease-out;
+}
+.card-loading-surface[data-card-loading="true"] { pointer-events: none; user-select: none; }
+.card-loading-surface[data-card-loading="true"]::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .card-loading-surface::after { transition: none; }
+}
+@media print {
+  .card-loading-surface::after { display: none !important; }
+}
 @media (min-width: 1280px) {
   .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

@@ -8,22 +8,33 @@ import {
   type StageCounts,
 } from "../lib/types.ts";
 
-const BASELINES: Record<number, Record<ProductCode, StageCounts>> = {
+interface OfficeBaseline {
+  openOgx: number;
+  products: Record<ProductCode, StageCounts>;
+}
+
+const BASELINES: Record<number, OfficeBaseline> = {
   6: {
-    oGV: { SU: 218, APP: 64, ACC: 24, APD: 17, RE: 6, FI: 16, CO: 12 },
-    oGTa: { SU: 109, APP: 22, ACC: 8, APD: 5, RE: 2, FI: 6, CO: 4 },
-    oGTe: { SU: 44, APP: 8, ACC: 3, APD: 2, RE: 0, FI: 2, CO: 1 },
-    iGV: { SU: 0, APP: 14, ACC: 7, APD: 5, RE: 2, FI: 4, CO: 3 },
-    iGTa: { SU: 0, APP: 3, ACC: 2, APD: 1, RE: 0, FI: 1, CO: 0 },
-    iGTe: { SU: 0, APP: 1, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+    openOgx: 374,
+    products: {
+      oGV: { SU: 254, APP: 33, ACC: 21, APD: 20, RE: 0, FI: 10, CO: 8 },
+      oGTa: { SU: 68, APP: 18, ACC: 1, APD: 0, RE: 0, FI: 0, CO: 0 },
+      oGTe: { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+      iGV: { SU: 0, APP: 64, ACC: 26, APD: 20, RE: 10, FI: 19, CO: 12 },
+      iGTa: { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+      iGTe: { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+    },
   },
   1539: {
-    oGV: { SU: 4820, APP: 1420, ACC: 540, APD: 390, RE: 185, FI: 310, CO: 245 },
-    oGTa: { SU: 2150, APP: 460, ACC: 165, APD: 105, RE: 48, FI: 92, CO: 68 },
-    oGTe: { SU: 890, APP: 180, ACC: 64, APD: 42, RE: 18, FI: 35, CO: 24 },
-    iGV: { SU: 0, APP: 1180, ACC: 495, APD: 340, RE: 160, FI: 275, CO: 210 },
-    iGTa: { SU: 0, APP: 210, ACC: 78, APD: 46, RE: 22, FI: 38, CO: 26 },
-    iGTe: { SU: 0, APP: 95, ACC: 34, APD: 20, RE: 9, FI: 16, CO: 11 },
+    openOgx: 7885,
+    products: {
+      oGV: { SU: 3757, APP: 443, ACC: 253, APD: 209, RE: 61, FI: 210, CO: 136 },
+      oGTa: { SU: 1032, APP: 546, ACC: 20, APD: 9, RE: 3, FI: 16, CO: 3 },
+      oGTe: { SU: 243, APP: 110, ACC: 17, APD: 9, RE: 7, FI: 10, CO: 1 },
+      iGV: { SU: 0, APP: 818, ACC: 375, APD: 145, RE: 99, FI: 230, CO: 131 },
+      iGTa: { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+      iGTe: { SU: 0, APP: 0, ACC: 0, APD: 0, RE: 0, FI: 0, CO: 0 },
+    },
   },
 };
 
@@ -33,7 +44,7 @@ function computeWindowRatio(start: string, end: string, nowMs: number = Date.now
   if (startMs > nowMs) return 0;
   const effectiveEnd = Math.min(endMs, nowMs);
   const elapsedDays = Math.max(1, Math.round((effectiveEnd - startMs) / 86_400_000) + 1);
-  return Math.max(0.08, Math.min(2.2, elapsedDays / 118));
+  return Math.max(0.08, Math.min(2.2, elapsedDays / 120));
 }
 
 export function getSnapshotPerformance(
@@ -52,7 +63,7 @@ export function getSnapshotPerformance(
   const products: ProductMetrics[] = (Object.keys(PRODUCT_META) as ProductCode[]).map(
     (code) => {
       const meta = PRODUCT_META[code];
-      const base = baseline[code];
+      const base = baseline.products[code];
       const counts: StageCounts = {
         SU: Math.round(base.SU * ratio),
         APP: Math.round(base.APP * ratio),
@@ -74,6 +85,12 @@ export function getSnapshotPerformance(
   );
 
   const totals = aggregateProducts(products);
+  const scaledOpenOgx = Math.round(baseline.openOgx * ratio);
+  if (scaledOpenOgx > totals.ogx.SU) {
+    totals.ogx.SU = scaledOpenOgx;
+    totals.all.SU = scaledOpenOgx;
+  }
+
   const stepConversions = buildStepConversions(totals);
 
   return {
